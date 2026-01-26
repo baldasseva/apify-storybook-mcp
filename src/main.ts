@@ -1,89 +1,45 @@
-import express, { Request, Response } from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import * as z from 'zod';
-import { CallToolResult, ReadResourceResult } from '@modelcontextprotocol/sdk/types.js';
+import { Actor,log } from 'apify';
 import cors from 'cors';
-import { log, Actor } from 'apify';
+import type { Request, Response } from 'express';
+import express from 'express';
 
-// Initialize the Apify Actor environment
-// This call configures the Actor for its environment and should be called at startup
+import * as GET_STORY_URLS from './tools/get_story_urls.js';
+import * as BUILDING_INSTRUCTIONS from './tools/get_ui_building_instructions.js';
+import * as GET_DOCUMENTATION from './tools/get-documentation.js';
+import * as LIST_ALL_DOCUMENTATION from './tools/list-all-documentation.js';
+
 await Actor.init();
 
 const getServer = () => {
-    // Create an MCP server with implementation details
     const server = new McpServer(
         {
-            name: 'ts-mcp-empty',
+            name: 'storybook-mcp',
             version: '1.0.0',
         },
         { capabilities: { logging: {} } },
     );
 
-    // Register a tool for adding two numbers with structured output
     server.registerTool(
-        'add',
-        {
-            description: 'Adds two numbers together and returns the sum with structured output',
-            inputSchema: {
-                a: z.number().describe('First number to add'),
-                b: z.number().describe('Second number to add'),
-            },
-            outputSchema: {
-                result: z.number().describe('The sum of a and b'),
-                operands: z.object({
-                    a: z.number(),
-                    b: z.number(),
-                }),
-                operation: z.string().describe('The operation performed'),
-            },
-        },
-        async ({ a, b }): Promise<CallToolResult> => {
-            try {
-                // Charge for the tool call
-                await Actor.charge({ eventName: 'tool-call' });
-                log.info('Charged for tool-call event');
-
-                const sum = a + b;
-                const structuredContent = {
-                    result: sum,
-                    operands: { a, b },
-                    operation: 'addition',
-                };
-
-                return {
-                    content: [
-                        {
-                            type: 'text',
-                            text: `The sum of ${a} and ${b} is ${sum}`,
-                        },
-                    ],
-                    structuredContent,
-                };
-            } catch (error) {
-                log.error('Error in add tool:', {
-                    error,
-                });
-                throw error;
-            }
-        },
+        'get_ui_building_instructions',
+        BUILDING_INSTRUCTIONS.CONFIG_SCHEMA,
+        BUILDING_INSTRUCTIONS.CONFIG,
     );
-
-    // Create a simple dummy resource at a fixed URI
-    server.registerResource(
-        'calculator-info',
-        'https://example.com/calculator',
-        { mimeType: 'text/plain' },
-        async (): Promise<ReadResourceResult> => {
-            return {
-                contents: [
-                    {
-                        uri: 'https://example.com/calculator',
-                        text: 'This is a simple calculator MCP server that can add two numbers together.',
-                    },
-                ],
-            };
-        },
+    server.registerTool(
+        'get_story_urls',
+        GET_STORY_URLS.CONFIG_SCHEMA,
+        GET_STORY_URLS.CONFIG,
+    );
+    server.registerTool(
+        'list-all-documentation',
+        LIST_ALL_DOCUMENTATION.CONFIG_SCHEMA,
+        LIST_ALL_DOCUMENTATION.CONFIG,
+    );
+    server.registerTool(
+        'get-documentation',
+        GET_DOCUMENTATION.CONFIG_SCHEMA,
+        GET_DOCUMENTATION.CONFIG,
     );
 
     return server;
@@ -120,8 +76,8 @@ app.post('/mcp', async (req: Request, res: Response) => {
         await transport.handleRequest(req, res, req.body);
         res.on('close', () => {
             log.info('Request closed');
-            transport.close();
-            server.close();
+            void transport.close();
+            void server.close();
         });
     } catch (error) {
         log.error('Error handling MCP request:', {
@@ -169,7 +125,7 @@ app.delete('/mcp', (_req: Request, res: Response) => {
 });
 
 // Start the server
-const PORT = process.env.APIFY_CONTAINER_PORT ? parseInt(process.env.APIFY_CONTAINER_PORT) : 3000;
+const PORT = process.env.APIFY_CONTAINER_PORT ? parseInt(process.env.APIFY_CONTAINER_PORT, 10) : 3000;
 app.listen(PORT, (error) => {
     if (error) {
         log.error('Failed to start server:', {

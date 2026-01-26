@@ -1,0 +1,62 @@
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { Actor } from "apify";
+import z from "zod";
+
+export const CONFIG_SCHEMA = {
+    description:
+        'Provides standardized instructions for UI component development, Storybook CSF3 stories, and story linking requirements.',
+    inputSchema: {},
+    outputSchema: {
+        instructions: z.object({
+            storybookCSF3: z.object({
+                format: z.string(),
+                example: z.string(),
+                notes: z.array(z.string()),
+            }),
+            componentBestPractices: z.array(z.string()),
+            storyLinking: z.object({
+                requirement: z.string(),
+                pattern: z.string(),
+                example: z.string(),
+            }),
+        }),
+    },
+};
+
+export const CONFIG = async (): Promise<CallToolResult> => {
+    await Actor.charge({ eventName: 'get_ui_building_instructions' });
+    const structuredContent = {
+        instructions: {
+            storybookCSF3: {
+                format: 'Use CSF3 with default export meta and named stories.',
+                example:
+                    "export default { title: 'Components/Button', component: Button }; export const Primary = { args: { variant: 'primary' } };",
+                notes: [
+                    'Name stories with PascalCase matching export names.',
+                    'Prefer args for state; avoid decorators unless necessary.',
+                ],
+            },
+            componentBestPractices: [
+                'Keep components pure; move side-effects outside.',
+                'Type props with clear interfaces and sensible defaults.',
+                'Document props via JSDoc or TSDoc annotations.',
+            ],
+            storyLinking: {
+                requirement: 'Every story must be linkable via Storybook URL.',
+                pattern: '?path=/story/<group>--<story-name>',
+                example:
+                    'https://apify.github.io/apify-core/storybook-shared/?path=/story/components-button--primary',
+            },
+        },
+    };
+
+    return {
+        content: [
+            {
+                type: 'text',
+                text: 'Returned UI building instructions (CSF3, best practices, linking).',
+            },
+        ],
+        structuredContent,
+    };
+};

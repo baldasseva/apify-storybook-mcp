@@ -5,18 +5,29 @@
 	"description": "TypeScript Model Context Protocol server with streamable HTTP transport.",
 	"version": "0.0",
 	"buildTag": "latest",
+	"defaultRunOptions": {
+		"timeoutSecs": 60
+	},
 	"usesStandbyMode": true,
 	"meta": {
 		"templateId": "ts-mcp-empty",
-		"generatedBy": "<FILL-IN-MODEL>"
+		"generatedBy": "GPT-5"
 	},
 	"input": {
 		"title": "Actor input schema",
-		"description": "This is Actor input schema",
+		"description": "Configure the base URL of the public Storybook to use",
 		"type": "object",
 		"schemaVersion": 1,
-		"properties": {},
-		"required": []
+		"properties": {
+			"storybookBaseUrl": {
+				"title": "Storybook Base URL",
+				"type": "string",
+				"description": "Public base URL of Storybook root (e.g., https://example.com/storybook/). Should end with a slash.",
+				"editor": "textfield",
+				"default": "https://apify.github.io/apify-core/storybook-shared/"
+			}
+		},
+		"required": ["storybookBaseUrl"]
 	},
 	"dockerfile": "../Dockerfile",
 	"webServerMcpPath": "/mcp"
