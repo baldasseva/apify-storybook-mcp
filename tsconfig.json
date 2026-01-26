@@ -8,7 +8,8 @@
         "rootDir": "src",
         "noUnusedLocals": false,
         "skipLibCheck": true,
-        "lib": ["DOM"]
+        "lib": ["DOM"],
+        "types": ["node", "jest"]
     },
     "include": ["./src/**/*"]
 }
