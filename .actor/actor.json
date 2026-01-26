@@ -26,6 +26,14 @@
 				"editor": "textfield",
 				"default": "https://apify.github.io/apify-core/storybook-shared/"
 			}
+			,
+			"additionalBuildingInstructions": {
+				"title": "Additional Building Instructions",
+				"type": "string",
+				"description": "Optional longer text with extra guidance to append to the UI building instructions output.",
+				"editor": "textarea",
+				"default": ""
+			}
 		},
 		"required": ["storybookBaseUrl"]
 	},

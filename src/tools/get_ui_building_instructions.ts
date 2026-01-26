@@ -19,12 +19,15 @@ export const CONFIG_SCHEMA = {
                 pattern: z.string(),
                 example: z.string(),
             }),
+            additionalBuildingInstructions: z.string().optional(),
         }),
     },
 };
 
 export const CONFIG = async (): Promise<CallToolResult> => {
     await Actor.charge({ eventName: 'get_ui_building_instructions' });
+    const input = await Actor.getInput<{ additionalBuildingInstructions?: string }>();
+    const extra = (input?.additionalBuildingInstructions ?? '').trim();
     const structuredContent = {
         instructions: {
             storybookCSF3: {
@@ -47,14 +50,39 @@ export const CONFIG = async (): Promise<CallToolResult> => {
                 example:
                     'https://apify.github.io/apify-core/storybook-shared/?path=/story/components-button--primary',
             },
+            additionalBuildingInstructions: extra || undefined,
         },
     };
+
+    const sc = structuredContent.instructions;
+    const mdx = [
+        '# UI Building Instructions',
+        '',
+        '**Storybook CSF3**',
+        `- **Format:** ${sc.storybookCSF3.format}`,
+        '- **Example:**',
+        '```ts',
+        sc.storybookCSF3.example,
+        '```',
+        '- **Notes:**',
+        ...sc.storybookCSF3.notes.map((n) => `  - ${n}`),
+        '',
+        '**Component Best Practices**',
+        ...sc.componentBestPractices.map((p) => `- ${p}`),
+        '',
+        '**Story Linking**',
+        `- **Requirement:** ${sc.storyLinking.requirement}`,
+        `- **Pattern:** \`${sc.storyLinking.pattern}\``,
+        `- **Example:** [components-button--primary](${sc.storyLinking.example})`,
+        ...(extra ? ['','**Additional Instructions**', extra] : []),
+        '',
+    ].join('\n');
 
     return {
         content: [
             {
                 type: 'text',
-                text: 'Returned UI building instructions (CSF3, best practices, linking).',
+                text: mdx,
             },
         ],
         structuredContent,
