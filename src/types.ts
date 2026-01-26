@@ -11,10 +11,8 @@ export type StoryUrlResult = StoryUrlRequest & {
 export type DocDetail = {
     id: string;
     title: string;
-    summary: string;
     markdown: string;
     metadata: {
-        kind: 'component' | 'docs';
         path: string;
     };
 };

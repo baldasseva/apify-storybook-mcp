@@ -1,7 +1,9 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Actor } from "apify";
+import { PlaywrightCrawler } from "crawlee";
 import z from "zod";
 
+import { getStoryFrame, openCodeExamples, scrapeDocsIframe } from "../storybook_scraper.js";
 import type { DocDetail } from "../types.js";
 
 export const EVENT_NAME = 'get-component-documentation';
@@ -13,36 +15,53 @@ export const CONFIG_SCHEMA = {
         id: z.string().describe('Component/docs ID to retrieve'),
     },
     outputSchema: {
-        doc: z.object({
-            id: z.string(),
-            title: z.string(),
-            summary: z.string(),
-            markdown: z.string(),
-            metadata: z.object({
-                kind: z.enum(['component', 'docs']),
-                path: z.string(),
-            }),
-        }),
+        markdown: z.string(),
     },
 };
 
 export const CONFIG = async ({ id }: { id: string }): Promise<CallToolResult> => {
     await Actor.charge({ eventName: EVENT_NAME });
-    const doc: DocDetail = {
-        id,
-        title: id === 'button' ? 'Button' : 'Documentation',
-        summary: 'This is a placeholder summary for the requested entry.',
-        markdown: '# Heading\n\nThis is dummy markdown content for the entry.',
-        metadata: {
-            kind: id === 'button' ? 'component' : 'docs',
-            path: id === 'button' ? 'components/button' : `docs/${id}`,
-        },
-    };
+    const input = await Actor.getInput<{ storybookBaseUrl: string }>();
+    const base = (input?.storybookBaseUrl ?? '').trim();
+    if (!base) throw new Error('Missing required Actor input: storybookBaseUrl');
 
+    const docsUrl = `${base}?path=/docs/${id}--docs`;
+
+    let scraped: DocDetail | undefined;
+    const crawler = new PlaywrightCrawler({
+        maxRequestsPerCrawl: 1,
+        maxConcurrency: 1,
+        requestHandler: async ({ page }) => {
+            await page.goto(docsUrl, { waitUntil: 'domcontentloaded' });
+
+            const frame = await getStoryFrame(page);
+            await openCodeExamples(frame);
+            const { title, markdown } = await scrapeDocsIframe(frame);
+
+            scraped = {
+                id,
+                title: title || id,
+                markdown,
+                metadata: { path: docsUrl },
+            };
+        },
+    });
+
+    try {
+        await crawler.run([{ url: docsUrl }]);
+    } catch {
+        scraped = {
+            id,
+            title: id,
+            markdown: `Documentation URL: ${docsUrl}`,
+            metadata: { path: docsUrl },
+        };
+    }
+
+    const doc = scraped!;
+    const result = doc.markdown;
     return {
-        content: [
-            { type: 'text', text: `Returned documentation for '${id}' (dummy).` },
-        ],
-        structuredContent: { doc },
+        content: [{ type: 'text', text: result }],
+        structuredContent: doc,
     };
 };

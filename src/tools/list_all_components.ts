@@ -15,7 +15,7 @@ const buildMdxOutput = (
     lines.push('These are the available components:');
     for (const c of components) {
         const url = `${input.storybookBaseUrl}?path=/story/${c.id}`;
-        const desc = '';
+        const desc = ''; // not sure how to get this without scraping every doc page
         const tagsText = c.tags.join(', ');
         lines.push(`- [${c.title}](${url}): ${desc} [${tagsText}]`.trimEnd());
     }
