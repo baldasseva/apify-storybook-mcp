@@ -6,7 +6,7 @@ export const EVENT_NAME = 'get_ui_building_instructions';
 
 export const CONFIG_SCHEMA = {
     description:
-        'Provides standardized instructions for UI component development, Storybook CSF3 stories, and story linking requirements.',
+        'Instructions on how to do UI component development.',
     inputSchema: {},
     outputSchema: {
         instructions: z.object({

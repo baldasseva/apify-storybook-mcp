@@ -1,13 +1,5 @@
-import {
-  buildComponentIndex,
-  componentBaseIdFromTitle,
-  fetchSharedStorybookIndex,
-  getEntryById,
-  listDocs,
-  listStories,
-  resolvePublicUrlForEntry,
-} from '../storybook_scraper.js';
-import type { StorybookEntry,StorybookIndex } from '../types.js';
+import { fetchSharedStorybookIndex } from '../storybook_scraper.js';
+import type { StorybookIndex } from '../types.js';
 
 describe('storybook_scraper', () => {
   const sampleIndex: StorybookIndex = {
@@ -64,13 +56,6 @@ describe('storybook_scraper', () => {
     jest.restoreAllMocks();
   });
 
-  it('componentBaseIdFromTitle converts segmented titles to dash-case', () => {
-    expect(componentBaseIdFromTitle('UI-Library/Code/CodeBlockWithTabs')).toBe(
-      'ui-library-code-codeblockwithtabs',
-    );
-    expect(componentBaseIdFromTitle('Design Tokens/Icons')).toBe('design-tokens-icons');
-  });
-
   it('fetchSharedStorybookIndex appends index.json and normalizes base URL', async () => {
     await expect(fetchSharedStorybookIndex('https://example.com/storybook')).resolves.toEqual(
       sampleIndex,
@@ -86,39 +71,5 @@ describe('storybook_scraper', () => {
     );
   });
 
-  it('listDocs returns only docs entries', () => {
-    const docs = listDocs(sampleIndex);
-    expect(docs.map((d) => d.id)).toEqual(['intro--docs', 'design-tokens-icons--docs']);
-  });
-
-  it('listStories returns only story entries', () => {
-    const stories = listStories(sampleIndex);
-    expect(stories.map((s) => s.id)).toEqual(['ui-library-code-codeblockwithtabs--default']);
-  });
-
-  it('buildComponentIndex aggregates import paths, stories, and hasDocs flag', () => {
-    const comps = buildComponentIndex(sampleIndex);
-    const codeBlock = comps.find((c) => c.baseId === 'ui-library-code-codeblockwithtabs');
-    expect(codeBlock).toBeTruthy();
-    expect(codeBlock!.stories).toContain('ui-library-code-codeblockwithtabs--default');
-    const designTokens = comps.find((c) => c.baseId === 'design-tokens-icons');
-    expect(designTokens).toBeTruthy();
-    expect(designTokens!.hasDocs).toBe(true);
-  });
-
-  it('resolvePublicUrlForEntry builds proper docs/story URLs', () => {
-    const entryDoc = sampleIndex.entries['intro--docs'] as StorybookEntry;
-    const entryStory = sampleIndex.entries['ui-library-code-codeblockwithtabs--default'] as StorybookEntry;
-    expect(resolvePublicUrlForEntry(entryDoc, 'https://example.com/storybook/')).toBe(
-      'https://example.com/storybook/?path=/docs/intro--docs',
-    );
-    expect(resolvePublicUrlForEntry(entryStory, 'https://example.com/storybook/')).toBe(
-      'https://example.com/storybook/?path=/story/ui-library-code-codeblockwithtabs--default',
-    );
-  });
-
-  it('getEntryById finds entries safely', () => {
-    expect(getEntryById(sampleIndex, 'intro--docs')!.title).toBe('Intro');
-    expect(getEntryById(sampleIndex, 'missing')).toBeUndefined();
-  });
+  // Other scraper helpers have been removed; keep coverage for index fetching only
 });
