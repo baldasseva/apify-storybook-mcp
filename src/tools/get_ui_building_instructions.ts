@@ -2,6 +2,8 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Actor } from "apify";
 import z from "zod";
 
+export const EVENT_NAME = 'get_ui_building_instructions';
+
 export const CONFIG_SCHEMA = {
     description:
         'Provides standardized instructions for UI component development, Storybook CSF3 stories, and story linking requirements.',
@@ -25,7 +27,7 @@ export const CONFIG_SCHEMA = {
 };
 
 export const CONFIG = async (): Promise<CallToolResult> => {
-    await Actor.charge({ eventName: 'get_ui_building_instructions' });
+    await Actor.charge({ eventName: EVENT_NAME });
     const input = await Actor.getInput<{ additionalBuildingInstructions?: string }>();
     const extra = (input?.additionalBuildingInstructions ?? '').trim();
     const structuredContent = {

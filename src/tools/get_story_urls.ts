@@ -4,9 +4,11 @@ import z from "zod";
 
 import type { StoryUrlRequest, StoryUrlResult } from "../types.js";
 
+export const EVENT_NAME = 'get-story-urls';
+
 export const CONFIG_SCHEMA = {
     description:
-        'Returns direct Storybook URLs for provided stories based on file path and export name.',
+        'Get the URL for one or more stories.',
     inputSchema: {
         stories: z
             .array(
@@ -36,7 +38,7 @@ export const CONFIG_SCHEMA = {
 };
 
 export const CONFIG = async ({ stories }: { stories: StoryUrlRequest[] }): Promise<CallToolResult> => {
-    await Actor.charge({ eventName: 'get_story_urls' });
+    await Actor.charge({ eventName: EVENT_NAME });
     const base = 'https://apify.github.io/apify-core/storybook-shared/';
     const results: StoryUrlResult[] = stories.map((s) => ({
         absoluteStoryPath: s.absoluteStoryPath,

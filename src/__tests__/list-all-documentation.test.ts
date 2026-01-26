@@ -59,7 +59,7 @@ jest.mock('../storybook_scraper.js', () => {
 });
 
 // Import the tool after mocks are set up
-import { CONFIG } from '../tools/list-all-documentation.js';
+import { CONFIG } from '../tools/list_all_components.js';
 
 function getTextContent(result: CallToolResult): string {
   const part = result.content.find((c: { type?: string }) => c.type === 'text') as { type: 'text'; text: string } | undefined;

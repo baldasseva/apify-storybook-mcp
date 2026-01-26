@@ -5,6 +5,8 @@ import z from "zod";
 import { buildComponentIndex, componentBaseIdFromTitle, fetchSharedStorybookIndex, resolvePublicUrlForEntry } from "../storybook_scraper.js";
 import type { DocListEntry, StorybookIndex } from "../types.js";
 
+export const EVENT_NAME = 'list-all-components';
+
 const buildMdxOutput = (
     docs: DocListEntry[],
     index: StorybookIndex,
@@ -69,7 +71,7 @@ export const CONFIG_SCHEMA = {
 };
 
 export const CONFIG = async (): Promise<CallToolResult> => {
-    await Actor.charge({ eventName: 'list-all-documentation' });
+    await Actor.charge({ eventName: EVENT_NAME });
     const input = await Actor.getInput<{ storybookBaseUrl: string }>();
     if (!input?.storybookBaseUrl) {
         throw new Error('Missing required Actor input: storybookBaseUrl');

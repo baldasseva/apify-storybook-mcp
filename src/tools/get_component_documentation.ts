@@ -4,6 +4,8 @@ import z from "zod";
 
 import type { DocDetail } from "../types.js";
 
+export const EVENT_NAME = 'get-component-documentation';
+
 export const CONFIG_SCHEMA = {
     description:
         'Returns detailed documentation for a specific component or docs entry by ID (dummy data).',
@@ -25,7 +27,7 @@ export const CONFIG_SCHEMA = {
 };
 
 export const CONFIG = async ({ id }: { id: string }): Promise<CallToolResult> => {
-    await Actor.charge({ eventName: 'get-documentation' });
+    await Actor.charge({ eventName: EVENT_NAME });
     const doc: DocDetail = {
         id,
         title: id === 'button' ? 'Button' : 'Documentation',

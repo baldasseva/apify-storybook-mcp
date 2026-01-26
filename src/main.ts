@@ -5,10 +5,10 @@ import cors from 'cors';
 import type { Request, Response } from 'express';
 import express from 'express';
 
+import * as GET_DOCUMENTATION from './tools/get_component_documentation.js';
 import * as GET_STORY_URLS from './tools/get_story_urls.js';
 import * as BUILDING_INSTRUCTIONS from './tools/get_ui_building_instructions.js';
-import * as GET_DOCUMENTATION from './tools/get-documentation.js';
-import * as LIST_ALL_DOCUMENTATION from './tools/list-all-documentation.js';
+import * as LIST_ALL_COMPONENTS from './tools/list_all_components.js';
 
 await Actor.init();
 
@@ -22,22 +22,22 @@ const getServer = () => {
     );
 
     server.registerTool(
-        'get_ui_building_instructions',
+        BUILDING_INSTRUCTIONS.EVENT_NAME,
         BUILDING_INSTRUCTIONS.CONFIG_SCHEMA,
         BUILDING_INSTRUCTIONS.CONFIG,
     );
     server.registerTool(
-        'get_story_urls',
+        GET_STORY_URLS.EVENT_NAME,
         GET_STORY_URLS.CONFIG_SCHEMA,
         GET_STORY_URLS.CONFIG,
     );
     server.registerTool(
-        'list-all-documentation',
-        LIST_ALL_DOCUMENTATION.CONFIG_SCHEMA,
-        LIST_ALL_DOCUMENTATION.CONFIG,
+        LIST_ALL_COMPONENTS.EVENT_NAME,
+        LIST_ALL_COMPONENTS.CONFIG_SCHEMA,
+        LIST_ALL_COMPONENTS.CONFIG,
     );
     server.registerTool(
-        'get-documentation',
+        GET_DOCUMENTATION.EVENT_NAME,
         GET_DOCUMENTATION.CONFIG_SCHEMA,
         GET_DOCUMENTATION.CONFIG,
     );
