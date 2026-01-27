@@ -38,5 +38,11 @@
 		"required": ["storybookBaseUrl"]
 	},
 	"dockerfile": "../Dockerfile",
-	"webServerMcpPath": "/mcp"
+	"webServerMcpPath": "/mcp",
+	"output": {
+		"actorOutputSchemaVersion": 1,
+		"title": "Storybook MCP Output",
+		"description": "This Actor does not generate persistent output; API responses are returned inline.",
+		"properties": {}
+	}
 }
