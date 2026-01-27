@@ -1,7 +1,7 @@
 # Specify the base Docker image. You can read more about
 # the available images at https://docs.apify.com/sdk/js/docs/guides/docker-images
 # You can also use any other image from Docker Hub.
-FROM apify/actor-node:22 AS builder
+FROM apify/actor-node-playwright-chrome:22-1.58.0 AS builder
 
 # Check preinstalled packages
 RUN npm ls @crawlee/core apify puppeteer playwright
@@ -9,6 +9,9 @@ RUN npm ls @crawlee/core apify puppeteer playwright
 # Copy just package.json and package-lock.json
 # to speed up the build using Docker layer cache.
 COPY --chown=myuser:myuser package*.json ./
+
+# Check Playwright version is the same as the one from base image.
+RUN node check-playwright-version.mjs
 
 # Install all dependencies. Don't audit to speed up the installation.
 RUN npm install --include=dev --audit=false
@@ -22,12 +25,10 @@ COPY --chown=myuser:myuser . ./
 RUN npm run build
 
 # Create final image
-FROM apify/actor-node:22
+FROM apify/actor-node-playwright-chrome:22-1.58.0
 
 # Check preinstalled packages
 RUN npm ls @crawlee/core apify puppeteer playwright
-
-RUN npx playwright install --with-deps
 
 # Copy just package.json and package-lock.json
 # to speed up the build using Docker layer cache.
