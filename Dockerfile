@@ -27,6 +27,8 @@ FROM apify/actor-node:22
 # Check preinstalled packages
 RUN npm ls @crawlee/core apify puppeteer playwright
 
+RUN npx playwright install --with-deps
+
 # Copy just package.json and package-lock.json
 # to speed up the build using Docker layer cache.
 COPY --chown=myuser:myuser package*.json ./
