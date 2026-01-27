@@ -134,6 +134,7 @@ app.listen(PORT, (error) => {
         process.exit(1);
     }
     log.info(`MCP Server listening on port ${PORT}`);
+    log.info(`Access MCP Server via ${Actor.config.get('standbyUrl')}/mcp`);
 });
 
 // Handle server shutdown
