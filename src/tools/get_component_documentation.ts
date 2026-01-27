@@ -3,7 +3,7 @@ import { Actor } from "apify";
 import { PlaywrightCrawler } from "crawlee";
 import z from "zod";
 
-import { getStoryFrame, openCodeExamples, scrapeDocsIframe } from "../storybook_scraper.js";
+import { getStoryDocContainer, openCodeExamples, scrapeDocsIframe } from "../storybook_scraper.js";
 import type { DocDetail } from "../types.js";
 
 export const EVENT_NAME = 'get-component-documentation';
@@ -34,9 +34,9 @@ export const CONFIG = async ({ id }: { id: string }): Promise<CallToolResult> =>
         requestHandler: async ({ page }) => {
             await page.goto(docsUrl, { waitUntil: 'domcontentloaded' });
 
-            const frame = await getStoryFrame(page);
-            await openCodeExamples(frame);
-            const { title, markdown } = await scrapeDocsIframe(frame);
+            const container = await getStoryDocContainer(page);
+            await openCodeExamples(container);
+            const { title, markdown } = await scrapeDocsIframe(container);
 
             scraped = {
                 id,
@@ -47,19 +47,10 @@ export const CONFIG = async ({ id }: { id: string }): Promise<CallToolResult> =>
         },
     });
 
-    try {
-        await crawler.run([{ url: docsUrl }]);
-    } catch {
-        scraped = {
-            id,
-            title: id,
-            markdown: `Documentation URL: ${docsUrl}`,
-            metadata: { path: docsUrl },
-        };
-    }
+    await crawler.run([{ url: docsUrl }]);
 
     const doc = scraped!;
-    const result = doc.markdown;
+    const result = doc?.markdown;
     return {
         content: [{ type: 'text', text: result }],
         structuredContent: doc,
