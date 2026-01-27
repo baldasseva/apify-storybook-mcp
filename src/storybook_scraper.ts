@@ -1,8 +1,8 @@
 import { log } from 'apify';
+import { sleep } from 'crawlee';
 import type { Locator, Page } from 'playwright';
 
 import type { StorybookIndex } from './types.js';
-import { sleep } from 'crawlee';
 
 function normalizeBaseUrl(baseUrl: string): string {
     const trimmed = baseUrl.trim();
