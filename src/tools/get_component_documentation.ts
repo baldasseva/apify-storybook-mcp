@@ -29,7 +29,7 @@ export const CONFIG = async ({ id }: { id: string }): Promise<CallToolResult> =>
 
     let scraped: DocDetail | undefined;
     const crawler = new PlaywrightCrawler({
-        maxRequestsPerCrawl: 1,
+        maxRequestsPerCrawl: 100,
         maxConcurrency: 1,
         requestHandler: async ({ page }) => {
             await page.goto(docsUrl, { waitUntil: 'domcontentloaded' });

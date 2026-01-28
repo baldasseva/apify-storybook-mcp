@@ -4,6 +4,11 @@
 
 This is an Apify Standby Actor that exposes a Model Context Protocol (MCP) server. It helps LLMs explore any public Storybook, list components, and fetch readable documentation for individual components.
 
+Storybook offers an [official MCP addon](https://storybook.js.org/addons/@storybook/addon-mcp), but I found impossible to deploy it easily anywhere. I suppose it is still under development and may become more usable in the future, but for now, except for local development, it is useless.
+This Actor wants to offer a generic interface where any Storybook that is publicly available on the web can be refactored into an MCP server.
+
+If you need more functionality for your own Storybook, consider forking [this repo](https://github.com/baldasseva/apify-storybook-mcp) and making your customized Storybook MCP Actor,
+
 ## What Is Storybook?
 Storybook is a UI workshop for building, testing, and documenting components in isolation. It renders stories (examples) and docs pages so teams can browse usage, props, and code samples without running the full app. Learn more at https://storybook.js.org.
 
@@ -16,7 +21,11 @@ Serves an MCP server over HTTP, exposing tools to:
 - Discover story URLs for a component
 
 
+
 ### MCP Tools
+
+The tools are inspired by the [Storybook official MCP addon](https://storybook.js.org/addons/@storybook/addon-mcp).
+
 - `get_ui_building_instructions`: Returns structured instructions and MDX text. Appends optional _additionalBuildingInstructions_ from Actor input.
 - `list_all_components`: Lists unique components. Returns structured _components_ and an MDX list.
 - `get_component_documentation`: Navigates to a Storybook docs page and extracts ordered Markdown (headings, paragraphs, lists, code blocks, props table). Output is Markdown-only.
