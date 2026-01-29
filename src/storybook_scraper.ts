@@ -33,7 +33,8 @@ export async function fetchSharedStorybookIndex(storybookBaseUrl: string): Promi
  */
 
 export async function openCodeExamples(container: Locator) {
-    const toggleButtons = await container.locator('.docblock-code-toggle').elementHandles();
+    // Only click toggles that are not already expanded
+    const toggleButtons = await container.locator('.docblock-code-toggle:not(.docblock-code-toggle--expanded)').elementHandles();
     for (const btn of toggleButtons) {
         await btn.click();
         await sleep(250); // small delay to allow code block to render
@@ -41,11 +42,6 @@ export async function openCodeExamples(container: Locator) {
 }
 
 export async function getStoryDocContainer(page: Page): Promise<Locator> {
-    await page.waitForSelector('#storybook-preview-iframe');
-    const frameLocator = page.frameLocator('#storybook-preview-iframe');
-    if (!frameLocator) {
-        throw new Error('Could not find Storybook preview iframe on the page');
-    }
     // There may be different nesting levels depending on Storybook version and layout
     // so we use look for H1 presence in order to find the father container of all the doc elements
     const base = '#storybook-docs div.sbdocs div.sbdocs';
@@ -54,11 +50,12 @@ export async function getStoryDocContainer(page: Page): Promise<Locator> {
         `${base} > div`,
         `${base} > div > div`,
     ];
+    await page.waitForSelector(base);
     // Wait for the base container to appear
-    await frameLocator.locator(base).first().waitFor();
+    await page.locator(base).first().waitFor();
 
     for (const sel of depthSelectors) {
-        const candidate = frameLocator.locator(sel).first();
+        const candidate = page.locator(sel).first();
         // Check for an H1 child inside the candidate
         if (await candidate.locator('> h1').count()) {
             return candidate;
@@ -66,116 +63,129 @@ export async function getStoryDocContainer(page: Page): Promise<Locator> {
     }
 
     // Fallback to original container if none matched the H1 heuristic
-    const fallback = frameLocator.locator(base).first();
+    const fallback = page.locator(base).first();
     await fallback.waitFor();
     return fallback;
 }
 
 export async function scrapeDocsIframe(container: Locator): Promise<{ title: string; markdown: string }> {
-    // note that "evaluate" runs in the browser context
-    // any variables from outside are not accessible here
-    // any console.log calls will appear in the browser console, not in Node.js logs
-    return await container.evaluate((el: Element) => {
-        const lines: string[] = [];
-        let title = '';
-        const kids = Array.from(el.children);
+    const lines: string[] = [];
+    let title = '';
 
-        for (const child of kids) {
-            const tag = child.tagName.toLowerCase();
-            const text = (child.textContent || '').trim();
-            switch (tag) {
-                case 'h1':
-                    if (!title) title = text;
-                    lines.push(`# ${text}`);
-                    break;
-                case 'h2':
-                    lines.push(`## ${text}`);
-                    break;
-                case 'h3':
-                    lines.push(`### ${text}`);
-                    break;
-                case 'h4':
-                    lines.push(`#### ${text}`);
-                    break;
-                case 'h5':
-                    lines.push(`##### ${text}`);
-                    break;
-                case 'h6':
-                    lines.push(`###### ${text}`);
-                    break;
-                case 'ul': {
-                    const items = Array.from(child.children).filter(c => c.tagName.toLowerCase() === 'li');
-                    for (const li of items) lines.push(`- ${(li.textContent || '').trim()}`);
-                    break;
+    // Iterate top-level children to preserve order and structure
+    const children = await container.locator(':scope > *').elementHandles();
+
+    for (const child of children) {
+        const tagNameHandle = await child.getProperty('tagName');
+        const tag = String((await tagNameHandle.jsonValue()) || '').toLowerCase();
+        const text = ((await child.textContent()) || '').trim();
+
+        switch (tag) {
+            case 'h1':
+                if (!title) title = text;
+                lines.push(`# ${text}`);
+                break;
+            case 'h2':
+                lines.push(`## ${text}`);
+                break;
+            case 'h3':
+                lines.push(`### ${text}`);
+                break;
+            case 'h4':
+                lines.push(`#### ${text}`);
+                break;
+            case 'h5':
+                lines.push(`##### ${text}`);
+                break;
+            case 'h6':
+                lines.push(`###### ${text}`);
+                break;
+            case 'ul': {
+                const items = await child.$$('li');
+                for (const li of items) {
+                    const liText = ((await li.textContent()) || '').trim();
+                    if (liText) lines.push(`- ${liText}`);
                 }
-                case 'ol': {
-                    const items = Array.from(child.children).filter(c => c.tagName.toLowerCase() === 'li');
-                    items.forEach((li, i) => lines.push(`${i + 1}. ${(li.textContent || '').trim()}`));
-                    break;
-                }
-                case 'div': {
-                    // div can be a story preview with a code block
-                    const pre = child.querySelector('pre');
-                    if (pre) {
-                        const storyTitle = child.querySelector('h3');
-                        const code = (pre.textContent || '').trim();
-                        if (code) {
-                            if (storyTitle) {
-                                const stText = (storyTitle.textContent || '').trim();
-                                lines.push(`#### ${stText}`);
-                            }
-                            lines.push('```tsx');
-                            lines.push(code);
-                            lines.push('```');
-                        }
-                        break;
-                    }
-                    // div can contain a table with a list of props
-                    const table = child.querySelector('table');
-                    if (table) {
-                        lines.push('**Props**');
-                            const tbody = table.querySelector('tbody');
-                            if (tbody) {
-                                const rows = Array.from(tbody.querySelectorAll('tr'));
-                                for (const row of rows) {
-                                    const cells = Array.from(row.querySelectorAll('td'));
-                                    if (cells.length < 4) {
-                                        // Unexpected structure, skip
-                                        continue;
-                                    }
-                                    const name = (cells[0].textContent || '').trim();
-                                    const desc = (cells[1].textContent || '').trim();
-                                    const defRaw = (cells[2].textContent || '').trim();
-                                    const hasDefault = defRaw && defRaw !== '-';
-                                    let optionsText = '';
-                                    const select = cells[3].querySelector('select');
-                                    if (select) {
-                                        const opts = Array.from(select.querySelectorAll('option')).map((o) => (o.textContent !== 'Choose option...' ? (o.textContent || '').trim() : '')).filter(Boolean);
-                                        if (opts.length) optionsText = opts.join(' | ');
-                                    }
-                                    const parts: string[] = [];
-                                    parts.push(`${name}: ${desc}`);
-                                    if (hasDefault) parts.push(`default: ${defRaw}`);
-                                    if (optionsText) parts.push(`options: ${optionsText}`);
-                                    lines.push(`- ${parts.join(' — ')}`);
-                                }
-                            }
-                        break;
-                    }
-                    // in any other case, take the text, if there is any
-                    if (text) lines.push(text);
-                    break;
-                }
-                case 'style':
-                case 'script':
-                    break; // ignore
-                default:
-                    if (text) lines.push(text);
-                    break;
+                break;
             }
-        }
+            case 'ol': {
+                const items = await child.$$('li');
+                for (let i = 0; i < items.length; i++) {
+                    const liText = ((await items[i].textContent()) || '').trim();
+                    if (liText) lines.push(`${i + 1}. ${liText}`);
+                }
+                break;
+            }
+            case 'div': {
+                // Check for story preview with code block
+                const pre = await child.$('pre');
+                if (pre) {
+                    const storyTitle = await child.$('h3');
+                    const code = ((await pre.textContent()) || '').trim();
+                    if (code) {
+                        if (storyTitle) {
+                            const stText = ((await storyTitle.textContent()) || '').trim();
+                            if (stText) lines.push(`#### ${stText}`);
+                        }
+                        lines.push('```tsx');
+                        lines.push(code);
+                        lines.push('```');
+                    }
+                    break;
+                }
 
-        const markdown = lines.join('\n\n');
-        return { title, markdown };
-    });
+                // Check for props table
+                const table = await child.$('table');
+                if (table) {
+                    lines.push('**Props**');
+                    const tbody = await table.$('tbody');
+                    if (tbody) {
+                        const rows = await tbody.$$('tr');
+                        for (const row of rows) {
+                            const cells = await row.$$('td');
+                            if (cells.length < 4) continue; // Unexpected structure
+
+                            const name = ((await cells[0].textContent()) || '').trim();
+                            const desc = ((await cells[1].textContent()) || '').trim();
+                            const defRaw = ((await cells[2].textContent()) || '').trim();
+                            const hasDefault = !!defRaw && defRaw !== '-';
+
+                            let optionsText = '';
+                            const select = await cells[3].$('select');
+                            if (select) {
+                                const opts = await select.$$('option');
+                                const optTexts: string[] = [];
+                                for (const o of opts) {
+                                    const t = ((await o.textContent()) || '').trim();
+                                    if (t && t !== 'Choose option...') optTexts.push(t);
+                                }
+                                if (optTexts.length) optionsText = optTexts.join(' | ');
+                            }
+
+                            const parts: string[] = [];
+                            parts.push(`${name}: ${desc}`);
+                            if (hasDefault) parts.push(`default: ${defRaw}`);
+                            if (optionsText) parts.push(`options: ${optionsText}`);
+                            lines.push(`- ${parts.join(' — ')}`);
+                        }
+                    }
+                    break;
+                }
+
+                // Otherwise, include plain text if present
+                if (text) lines.push(text);
+                break;
+            }
+            case 'style':
+            case 'script':
+                // ignore
+                break;
+            default:
+                if (text) lines.push(text);
+                break;
+        }
+    }
+
+    const markdown = lines.join('\n\n');
+    return { title, markdown };
 }
