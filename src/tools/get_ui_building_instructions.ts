@@ -26,10 +26,8 @@ export const CONFIG_SCHEMA = {
     },
 };
 
-export const CONFIG = async (): Promise<CallToolResult> => {
+export const CONFIG = async (_args: unknown, additionalBuildingInstructions = ''): Promise<CallToolResult> => {
     await Actor.charge({ eventName: EVENT_NAME });
-    const input = await Actor.getInput<{ additionalBuildingInstructions?: string }>();
-    const extra = (input?.additionalBuildingInstructions ?? '').trim();
     const structuredContent = {
         instructions: {
             storybookCSF3: {
@@ -52,7 +50,7 @@ export const CONFIG = async (): Promise<CallToolResult> => {
                 example:
                     'https://apify.github.io/apify-core/storybook-shared/?path=/story/components-button--primary',
             },
-            additionalBuildingInstructions: extra || undefined,
+            additionalBuildingInstructions: additionalBuildingInstructions || undefined,
         },
     };
 
@@ -76,7 +74,7 @@ export const CONFIG = async (): Promise<CallToolResult> => {
         `- **Requirement:** ${sc.storyLinking.requirement}`,
         `- **Pattern:** \`${sc.storyLinking.pattern}\``,
         `- **Example:** [components-button--primary](${sc.storyLinking.example})`,
-        ...(extra ? ['','**Additional Instructions**', extra] : []),
+        ...(additionalBuildingInstructions ? ['','**Additional Instructions**', additionalBuildingInstructions] : []),
         '',
     ].join('\n');
 

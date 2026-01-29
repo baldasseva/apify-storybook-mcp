@@ -2,56 +2,39 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Actor } from "apify";
 import z from "zod";
 
-import type { StoryUrlRequest, StoryUrlResult } from "../types.js";
-
 export const EVENT_NAME = 'get-story-urls';
 
 export const CONFIG_SCHEMA = {
     description:
-        'Get the URL for one or more stories.',
+        'Get the URL for one or more stories by their IDs. Story IDs are in the format "group-name-component-name" (e.g., "ui-library-cardcontainer").',
     inputSchema: {
-        stories: z
-            .array(
-                z.object({
-                    absoluteStoryPath: z
-                        .string()
-                        .describe('Absolute path to the story file'),
-                    exportName: z.string().describe('Named export of the story'),
-                    explicitStoryName: z
-                        .string()
-                        .optional()
-                        .describe('Optional explicit story name override'),
-                }),
-            )
-            .describe('List of story descriptors to resolve'),
+        ids: z
+            .array(z.string())
+            .describe('List of story IDs to resolve URLs for'),
     },
     outputSchema: {
         stories: z.array(
             z.object({
-                absoluteStoryPath: z.string(),
-                exportName: z.string(),
-                explicitStoryName: z.string().optional(),
+                id: z.string(),
                 url: z.string(),
             }),
         ),
     },
 };
 
-export const CONFIG = async ({ stories }: { stories: StoryUrlRequest[] }): Promise<CallToolResult> => {
+export const CONFIG = async ({ ids }: { ids: string[] }, storybookBaseUrl: string): Promise<CallToolResult> => {
     await Actor.charge({ eventName: EVENT_NAME });
-    const base = 'https://apify.github.io/apify-core/storybook-shared/';
-    const results: StoryUrlResult[] = stories.map((s) => ({
-        absoluteStoryPath: s.absoluteStoryPath,
-        exportName: s.exportName,
-        explicitStoryName: s.explicitStoryName,
-        url: `${base}?path=/story/dummy-group--${(s.explicitStoryName || s.exportName).toLowerCase()}`,
+
+    const results = ids.map((id) => ({
+        id,
+        url: `${storybookBaseUrl}?path=/story/${id}`,
     }));
 
     return {
         content: [
             {
                 type: 'text',
-                text: `Resolved ${results.length} story URLs (dummy).`,
+                text: `Resolved ${results.length} story URL${results.length !== 1 ? 's' : ''}.`,
             },
         ],
         structuredContent: { stories: results },

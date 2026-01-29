@@ -33,13 +33,10 @@ const getEmptyDocResponse = (id: string, docsUrl: string): DocDetail => ( {
     metadata: {path: docsUrl},
 });
 
-export const CONFIG = async ({ id }: { id: string }): Promise<CallToolResult> => {
+export const CONFIG = async ({ id }: { id: string }, storybookBaseUrl: string): Promise<CallToolResult> => {
     await Actor.charge({ eventName: EVENT_NAME });
-    const input = await Actor.getInput<{ storybookBaseUrl: string }>();
-    const base = (input?.storybookBaseUrl ?? '').trim();
-    if (!base) throw new Error('Missing required Actor input: storybookBaseUrl');
 
-    const docsUrl = getDocsUrl(base, id);
+    const docsUrl = getDocsUrl(storybookBaseUrl, id);
 
     let scraped: DocDetail | undefined;
 

@@ -12,6 +12,13 @@ import * as LIST_ALL_COMPONENTS from './tools/list_all_components.js';
 
 await Actor.init();
 
+const input = await Actor.getInput<{ storybookBaseUrl: string; additionalBuildingInstructions?: string }>();
+const storybookBaseUrl = (input?.storybookBaseUrl ?? '').trim();
+if (!storybookBaseUrl) {
+    throw new Error('Missing required Actor input: storybookBaseUrl');
+}
+const additionalBuildingInstructions = (input?.additionalBuildingInstructions ?? '').trim();
+
 const getServer = () => {
     const server = new McpServer(
         {
@@ -24,22 +31,22 @@ const getServer = () => {
     server.registerTool(
         BUILDING_INSTRUCTIONS.EVENT_NAME,
         BUILDING_INSTRUCTIONS.CONFIG_SCHEMA,
-        BUILDING_INSTRUCTIONS.CONFIG,
+        async (args) => BUILDING_INSTRUCTIONS.CONFIG(args, additionalBuildingInstructions),
     );
     server.registerTool(
         GET_STORY_URLS.EVENT_NAME,
         GET_STORY_URLS.CONFIG_SCHEMA,
-        GET_STORY_URLS.CONFIG,
+        async (args) => GET_STORY_URLS.CONFIG(args, storybookBaseUrl),
     );
     server.registerTool(
         LIST_ALL_COMPONENTS.EVENT_NAME,
         LIST_ALL_COMPONENTS.CONFIG_SCHEMA,
-        LIST_ALL_COMPONENTS.CONFIG,
+        async () => LIST_ALL_COMPONENTS.CONFIG(storybookBaseUrl),
     );
     server.registerTool(
         GET_DOCUMENTATION.EVENT_NAME,
         GET_DOCUMENTATION.CONFIG_SCHEMA,
-        GET_DOCUMENTATION.CONFIG,
+        async (args) => GET_DOCUMENTATION.CONFIG(args, storybookBaseUrl),
     );
 
     return server;
@@ -133,7 +140,7 @@ app.listen(PORT, (error) => {
         });
         process.exit(1);
     }
-    log.info(`MCP Server listening on port ${PORT}`);
+    log.info(`Started Storybook MCP server for Storybook at ${storybookBaseUrl}`);
     log.info(`Access MCP Server via ${Actor.config.get('standbyUrl')}/mcp`);
 });
 

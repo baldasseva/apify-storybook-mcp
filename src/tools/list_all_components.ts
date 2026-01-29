@@ -39,15 +39,10 @@ export const CONFIG_SCHEMA = {
     },
 };
 
-export const CONFIG = async (): Promise<CallToolResult> => {
+export const CONFIG = async (storybookBaseUrl: string): Promise<CallToolResult> => {
     await Actor.charge({ eventName: EVENT_NAME });
 
-    const input = await Actor.getInput<{ storybookBaseUrl: string }>();
-    if (!input?.storybookBaseUrl) {
-        throw new Error('Missing required Actor input: storybookBaseUrl');
-    }
-
-    const index = await fetchSharedStorybookIndex(input.storybookBaseUrl);
+    const index = await fetchSharedStorybookIndex(storybookBaseUrl);
 
     const components: ComponentEntry[] = [];
     const seen = new Set<string>();
@@ -75,7 +70,7 @@ export const CONFIG = async (): Promise<CallToolResult> => {
     }
 
     return {
-        content: [{ type: 'text', text: buildMdxOutput(components, input) }],
+        content: [{ type: 'text', text: buildMdxOutput(components, { storybookBaseUrl }) }],
         structuredContent: { components },
     };
 };
